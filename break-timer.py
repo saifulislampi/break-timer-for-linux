@@ -32,7 +32,8 @@ def is_locked(desktop="gnome"):
             return True
 
     except subprocess.CalledProcessError:
-        print("Error running screensaver-command. Make sure you have screensaver-command installed for your desktop environment.")
+        print("Error running screensaver-command. Make sure you have screensaver-command installed\
+             for your desktop environment.")
         sys.exit(2)
 
 
@@ -67,6 +68,8 @@ def main(argv):
         elif opt in options["grace_period"]:
             grace_period = int(arg)
 
+    print("Timer started. Next break in {0} minutes.".format(active_time))
+
     while True:
         time.sleep(60)
 
@@ -74,11 +77,13 @@ def main(argv):
             unlocked_time = 0
         else:
             unlocked_time += 1
+            print("Timer is running for {0} minutes. Next break in {1} minutes.".format(
+                unlocked_time, active_time - unlocked_time))
 
         if unlocked_time >= active_time:
             unlocked_time = 0
-            notification = "It's time to take a break! Screen will be locked in " + \
-                str(grace_period) + " sceconds."
+            notification = "It's time to take a break! Screen will be locked in {0} sceconds.".format(
+                grace_period)
             subprocess.Popen(["notify-send",  notification])
             time.sleep(grace_period)
             subprocess.Popen(
