@@ -32,27 +32,37 @@ def is_locked(desktop="gnome"):
             return True
 
     except subprocess.CalledProcessError:
-        print("Error running screensaver-command. Make sure you have screensaver-command installed\
-             for your desktop environment.")
+        print("Error running screensaver-command. Make sure you have screensaver-command\
+             installed for your desktop environment.")
         sys.exit(2)
+
+
+def show_notification(grace_period):
+    title = "It's time to take a break! Screen will be locked in {0} sceconds.".format(
+        grace_period)
+    subprocess.Popen(["notify-send",  title])
+
+
+def lock_screen(desktop):
+    subprocess.Popen(["{0}-screensaver-command".format(desktop),  "-l"])
 
 
 def main(argv):
     desktop = "gnome"
-    active_time = 30
-    grace_period = 10
     unlocked_time = 0
+    grace_period = 10
+    max_active_time = 30
 
     options = {
         "help": ["-h", "help"],
         "desktop": ["-d", "--desktop"],
-        "active_time": ["-t", "--active-period"],
+        "active_time": ["-t", "--active-time"],
         "grace_period": ["-p", "--grace-period"]
     }
 
     try:
         opts, args = getopt.getopt(
-            argv, "hd:t:p:", ["help", "desktop=", "active-time=", "grace-period"])
+            argv, "hd:t:p:", ["help", "desktop=", "active-time=", "grace-period="])
     except getopt.GetoptError:
         show_usages()
         sys.exit(2)
@@ -64,11 +74,11 @@ def main(argv):
         elif opt in options["desktop"]:
             desktop = arg
         elif opt in options["active_time"]:
-            active_time = int(arg)
+            max_active_time = int(arg)
         elif opt in options["grace_period"]:
             grace_period = int(arg)
 
-    print("Timer started. Next break in {0} minutes.".format(active_time))
+    print("Timer started. Next break in {0} minutes.".format(max_active_time))
 
     while True:
         time.sleep(60)
@@ -78,16 +88,15 @@ def main(argv):
         else:
             unlocked_time += 1
             print("Timer is running for {0} minutes. Next break in {1} minutes.".format(
-                unlocked_time, active_time - unlocked_time))
+                unlocked_time, max_active_time - unlocked_time))
 
-        if unlocked_time >= active_time:
+        if unlocked_time >= max_active_time:
             unlocked_time = 0
-            notification = "It's time to take a break! Screen will be locked in {0} sceconds.".format(
-                grace_period)
-            subprocess.Popen(["notify-send",  notification])
+
+            show_notification(grace_period)
             time.sleep(grace_period)
-            subprocess.Popen(
-                ["{0}-screensaver-command".format(desktop),  "-l"])
+
+            lock_screen(desktop)
 
 
 if __name__ == "__main__":
