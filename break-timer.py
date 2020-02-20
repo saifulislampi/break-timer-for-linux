@@ -130,15 +130,15 @@ def main(argv):
                 unlocked_time, max_active_time - unlocked_time))
 
         if unlocked_time >= max_active_time:
-            unlocked_time = 0
-
             if snooze_enabled:
                 if is_snoozed(snooze_time):
                     show_snooze_notification(snooze_time, icon)
                     time.sleep(snooze_time*one_minute)
                 else:
+                    unlocked_time = 0
                     lock_screen(desktop)
             else:
+                unlocked_time = 0
                 show_lock_notification(grace_period, icon)
                 time.sleep(grace_period)
                 lock_screen(desktop)
