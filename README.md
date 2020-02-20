@@ -1,6 +1,8 @@
 # Break Timer For Linux
 A simple python application that reminds you to take break after certain amount of screen on time and automatically lock the screen. 
 
+Timer will reset itself when the screen gets locked and start again at the next unlock. 
+
 ![Break Timer For Linux Preview](break-timer-preview.jpg)
 
 ## Installation
