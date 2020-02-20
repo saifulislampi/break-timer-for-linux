@@ -19,8 +19,16 @@ cd break-timer-for-linux
 Run the `break-timer.py` file with desired otptions. For example to set a break after every 20 minutes in gnome desktop, run -
 
 ```
-python3 break-timer.py -t 20
+python3 break-timer.py -t 20 -d gnome
 ```
+
+To run this program in background add `nohup` at the begining -
+
+```
+nohup python3 break-timer.py -t 20 -d gnome &
+```
+
+Alternatively see distro specific documentation for how to run a python program on startup.
 
 Other available options are given here -
 
