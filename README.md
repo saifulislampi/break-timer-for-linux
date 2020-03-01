@@ -24,10 +24,12 @@ cd break-timer-for-linux
 
 ## Usage
 
-Run the `break-timer.py` file with desired otptions. For example to set a break after every 20 minutes in gnome desktop, run -
+### Running as a Python Script
+
+Run the `break-timer.py` with desired otptions. For example to set a break for every 20 minutes, run -
 
 ```
-python3 break-timer.py -t 20 -d gnome
+python3 break-timer.py -t 20
 ```
 
 To enable snooze option -
@@ -39,7 +41,7 @@ python3 break-timer.py -t 20 -s true
 To run this program in background add `nohup` at the begining -
 
 ```
-nohup python3 break-timer.py -t 20 -d gnome &
+nohup python3 break-timer.py -t 20 &
 ```
 
 Alternatively see distro specific documentation for how to run a python program on startup.
@@ -53,6 +55,16 @@ Other available options are given here -
 -p, --grace-period  Time in seconds before the screen get locked after showing notification (default 10)
 -s, --snooze-enable Enable snooze option (default false)
 -z, --snooze-time   Snooze time in minutes (default 5)
+```
+
+Timer can also be configured via environment variable. Open .bashrc or .zshrc and add the following lines
+with desired changes -
+
+```
+export BREAK_TIMER_MAX_ACTIVE_MIN=30
+export BREAK_TIMER_GRACE_SEC=10
+export BREAK_TIMER_SNOOZE_ENABLED=false
+export BREAK_TIMER_SNOOZE_TIME_MIN=5
 ```
 
 ## Credits

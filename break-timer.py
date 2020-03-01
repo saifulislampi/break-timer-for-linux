@@ -13,13 +13,28 @@ def show_usages():
 
     Options:
         -h, --help          Show Help Options
-        -d, --desktop       Name of the desktop environment (e.g: "gnome", "cinnamon", default "gnome")
+        -d, --desktop       Name of the desktop environment (e.g: "gnome", "cinnamon", default is taken from DESKTOP_SESSION)
         -t, --active-time   Time in minutes before the app shows screen lock notification after unlock (default 20)
         -p, --grace-period  Time in seconds before the screen get locked after showing notification (default 10)
         -s, --snooze-enable Enable snooze option (default false)
         -z, --snooze-time   Snooze time in minutes (default 5)
+    
+    Break Timer can also be configured via environment variable. Open .bashrc or .zshrc and add the following lines
+    with desired changes -
+
+        export BREAK_TIMER_MAX_ACTIVE_MIN=30
+        export BREAK_TIMER_GRACE_SEC=10
+        export BREAK_TIMER_SNOOZE_ENABLED=false
+        export BREAK_TIMER_SNOOZE_TIME_MIN=5
     """
     print(usages)
+
+
+def parse_boolean(str):
+    try:
+        return str.lower() in ["true", "yes", "y"]
+    except:
+        return False
 
 
 def is_locked(desktop="gnome"):
@@ -40,9 +55,9 @@ def is_locked(desktop="gnome"):
         sys.exit(2)
 
 
-def show_lock_notification(grace_period, icon):
+def show_lock_notification(grace_period_sec, icon):
     title = "Time to take a break! Your PC will be locked in {0} sceconds.".format(
-        grace_period)
+        grace_period_sec)
     subprocess.Popen(["notify-send",  title, "--icon", icon])
 
 
@@ -73,15 +88,13 @@ def lock_screen(desktop):
 
 
 def main(argv):
-    desktop = "gnome"
-    unlocked_time = 0
-    grace_period = 10
-    max_active_time = 30
+    desktop = os.getenv('DESKTOP_SESSION', 'gnome').strip()
+    grace_period_sec = int(os.getenv('BREAK_TIMER_GRACE_SEC', '10'))
+    max_active_time = int(os.getenv('BREAK_TIMER_MAX_ACTIVE_MIN', '30'))
 
     # snooze options
-    snooze_enabled = False
-    # default snooze time in minutes
-    snooze_time = 5
+    snooze_enabled = parse_boolean(os.getenv('BREAK_TIMER_SNOOZE_ENABLED', ''))
+    snooze_time = int(os.getenv('BREAK_TIMER_SNOOZE_TIME_MIN', '5'))
 
     one_minute = 60
     icon = os.path.abspath("icon.png")
@@ -111,13 +124,24 @@ def main(argv):
         elif opt in options["active_time"]:
             max_active_time = int(arg)
         elif opt in options["grace_period"]:
-            grace_period = int(arg)
+            grace_period_sec = int(arg)
         elif opt in options["snooze_enabled"]:
             snooze_enabled = arg.lower() in ["true", "yes", "y"]
         elif opt in options["snooze_time"]:
             snooze_time = int(arg)
 
+    print("Break Timer Configuration")
+    print("__________________________")
+    print("Max Active Time: {0} min".format(max_active_time))
+    print("Grace Period: {0} sec".format(grace_period_sec))
+    print("Snooze Time: {0} min".format(snooze_time))
+    print("Snooze Enabled: {0}".format(snooze_enabled))
+    print("Desktop Environment: {0}".format(desktop))
+    print("\n")
+
     print("Timer started. Next break in {0} minutes.".format(max_active_time))
+
+    unlocked_time = 0
 
     while True:
         time.sleep(one_minute)
@@ -139,8 +163,8 @@ def main(argv):
                     lock_screen(desktop)
             else:
                 unlocked_time = 0
-                show_lock_notification(grace_period, icon)
-                time.sleep(grace_period)
+                show_lock_notification(grace_period_sec, icon)
+                time.sleep(grace_period_sec)
                 lock_screen(desktop)
 
 
