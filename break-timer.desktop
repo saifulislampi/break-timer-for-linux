@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Exec=/usr/bin/python3 /usr/bin/break-timer.py
+X-GNOME-Autostart-enabled=true
+NoDisplay=false
+Hidden=false
+Icon=~/.config/break-timer/icon.png
+Name[en_US]=Break Timer For Linux
+X-GNOME-Autostart-Delay=10

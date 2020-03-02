@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
+import configparser
+import getopt
 import os
+import subprocess
 import sys
 import time
-import getopt
-import subprocess
 
 
 def show_usages():
     usages = """
+    
     Usage:
         python3 break-timer.py [OPTION…]
 
@@ -19,21 +21,27 @@ def show_usages():
         -s, --snooze-enable Enable snooze option (default false)
         -z, --snooze-time   Snooze time in minutes (default 5)
     
-    Break Timer can also be configured via environment variable. Open .bashrc or .zshrc and add the following lines
-    with desired changes -
+    Alternatively, you can create/edit ~/.config/break-timer/break-timer.conf file to configure break timer settings.
+    Edit the following default with desired values.
 
-        export BREAK_TIMER_MAX_ACTIVE_MIN=30
-        export BREAK_TIMER_GRACE_SEC=10
-        export BREAK_TIMER_SNOOZE_ENABLED=false
-        export BREAK_TIMER_SNOOZE_TIME_MIN=5
+    [default]
+    desktop = gnome
+    max_active_time_min = 30
+    grace_period_sec = 10
+
+    [snooze]
+    snooze_enabled = no
+    snooze_time_min = 5
+
     """
+
     print(usages)
 
 
-def parse_boolean(str):
+def parse_boolean(_str):
     try:
-        return str.lower() in ["true", "yes", "y"]
-    except:
+        return _str.lower() in ["true", "yes", "y"]
+    except AttributeError:
         return False
 
 
@@ -42,7 +50,7 @@ def is_locked(desktop="gnome"):
 
     try:
         output = subprocess.check_output(
-            ["{0}-screensaver-command".format(desktop),  "-q"]).decode("utf-8").strip()
+            ["{0}-screensaver-command".format(desktop), "-q"]).decode("utf-8").strip()
 
         if screensaver_inactive_msg in output:
             return False
@@ -58,12 +66,12 @@ def is_locked(desktop="gnome"):
 def show_lock_notification(grace_period_sec, icon):
     title = "Time to take a break! Your PC will be locked in {0} sceconds.".format(
         grace_period_sec)
-    subprocess.Popen(["notify-send",  title, "--icon", icon])
+    subprocess.Popen(["notify-send", title, "--icon", icon])
 
 
 def show_snooze_notification(snooze_time, icon):
     title = "Timer is snoozed for {0} minutes.".format(snooze_time)
-    subprocess.Popen(["notify-send",  title, "--icon", icon])
+    subprocess.Popen(["notify-send", title, "--icon", icon])
 
 
 def is_snoozed(snooze_time):
@@ -84,21 +92,49 @@ def is_snoozed(snooze_time):
 
 
 def lock_screen(desktop):
-    subprocess.Popen(["{0}-screensaver-command".format(desktop),  "-l"])
+    subprocess.Popen(["{0}-screensaver-command".format(desktop), "-l"])
 
 
-def main(argv):
-    desktop = os.getenv('DESKTOP_SESSION', 'gnome').strip()
-    grace_period_sec = int(os.getenv('BREAK_TIMER_GRACE_SEC', '10'))
-    max_active_time = int(os.getenv('BREAK_TIMER_MAX_ACTIVE_MIN', '30'))
+def get_settings_from_config(filename):
+    config = configparser.ConfigParser()
+    config.read(filename)
 
-    # snooze options
-    snooze_enabled = parse_boolean(os.getenv('BREAK_TIMER_SNOOZE_ENABLED', ''))
-    snooze_time = int(os.getenv('BREAK_TIMER_SNOOZE_TIME_MIN', '5'))
+    _desktop = 'gnome'
+    _max_active_time = 30
+    _grace_period_sec = 10
+    _snooze_enabled = 'no'
+    _snooze_time = 5
 
-    one_minute = 60
-    icon = os.path.abspath("icon.png")
+    try:
+        _desktop = str(config['default']['desktop'])
+    except KeyError:
+        pass
 
+    try:
+        _max_active_time = int(config['default']['max_active_time_min'])
+    except KeyError:
+        pass
+
+    try:
+        _grace_period_sec = int(config['default']['grace_period_sec'])
+    except KeyError:
+        pass
+
+    try:
+        _snooze_enabled = config.getboolean('snooze', 'snooze_enabled')
+    except KeyError:
+        pass
+
+    try:
+        _snooze_time = int(config['snooze']['snooze_time_min'])
+    except KeyError:
+        pass
+
+    return _desktop, _max_active_time, _grace_period_sec, _snooze_enabled, _snooze_time
+
+
+def override_settings_with_commandline_values(argv, desktop, max_active_time, grace_period_sec, snooze_enabled,
+                                              snooze_time):
     options = {
         "help": ["-h", "help"],
         "desktop": ["-d", "--desktop"],
@@ -130,6 +166,22 @@ def main(argv):
         elif opt in options["snooze_time"]:
             snooze_time = int(arg)
 
+    return desktop, grace_period_sec, max_active_time, snooze_enabled, snooze_time
+
+
+def main(argv):
+    one_minute = 60
+
+    home = os.path.expanduser('~')
+    config_location = os.path.join(home, '.config/break-timer')
+    config_file = os.path.join(config_location, 'break-timer.conf')
+    icon = os.path.join(config_location, 'icon.png')
+
+    desktop, max_active_time, grace_period_sec, snooze_enabled, snooze_time = get_settings_from_config(config_file)
+
+    desktop, grace_period_sec, max_active_time, snooze_enabled, snooze_time = override_settings_with_commandline_values(
+        argv, desktop, max_active_time, grace_period_sec, snooze_enabled, snooze_time)
+
     print("Break Timer Configuration")
     print("__________________________")
     print("Max Active Time: {0} min".format(max_active_time))
@@ -150,14 +202,14 @@ def main(argv):
             unlocked_time = 0
         else:
             unlocked_time += 1
-            print("Timer is running for {0} minutes. Next break in {1} minutes.".format(
+            print("Screen is active for {0} minutes. Next break in {1} minutes.".format(
                 unlocked_time, max_active_time - unlocked_time))
 
         if unlocked_time >= max_active_time:
             if snooze_enabled:
                 if is_snoozed(snooze_time):
                     show_snooze_notification(snooze_time, icon)
-                    time.sleep(snooze_time*one_minute)
+                    time.sleep(snooze_time * one_minute)
                 else:
                     unlocked_time = 0
                     lock_screen(desktop)
